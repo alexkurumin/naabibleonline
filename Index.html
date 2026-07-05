@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Bíblia NAA — Nova Almeida Atualizada</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+
+  /* ================= TOKENS ================= */
+  :root{
+    --bg:#FFFFFF;
+    --fg:#633800;
+    --fg-soft:rgba(99,56,0,.58);
+    --fg-faint:rgba(99,56,0,.30);
+    --hair:rgba(99,56,0,.18);
+    --accent:#8a5a1c;
+    --display: 'Cormorant Garamond', serif;
+    --body: 'Crimson Pro', serif;
+    --mono: 'IBM Plex Mono', monospace;
+    --sidebar-w: 76px;
+  }
+  @media(min-width:760px){ :root{ --sidebar-w: 176px; } }
+
+  *{box-sizing:border-box;}
+  html,body{
+    height:100%; margin:0; padding:0;
+    background:var(--bg); color:var(--fg);
+    font-family:var(--body);
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background:var(--fg); color:var(--bg); }
+  button{font-family:inherit; cursor:pointer;}
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+  #app{ display:flex; height:100vh; height:100dvh; overflow:hidden; }
+
+  /* ================= SIDEBAR ================= */
+  #sidebar{
+    width:var(--sidebar-w); flex:0 0 auto;
+    display:flex; flex-direction:column;
+    padding:20px 10px; gap:6px;
+    border-right:none; /* no vertical divider lines anywhere in the app */
+    position:relative;
+  }
+  #sidebar::after{
+    /* soft separation without a hard rule/line */
+    content:""; position:absolute; top:0; right:0; bottom:0; width:28px;
+    background:linear-gradient(to right, rgba(99,56,0,.05), transparent);
+    pointer-events:none;
+  }
+  .brand{
+    display:flex; align-items:center; gap:8px;
+    padding:6px 8px 18px 8px;
+  }
+  .brand .fleuron{ font-size:1.4rem; line-height:1; color:var(--accent); }
+  .brand span{
+    font-family:var(--display); font-weight:600; font-size:1.15rem;
+    letter-spacing:.02em; display:none;
+  }
+  @media(min-width:760px){ .brand span{ display:inline; } }
+
+  .nav-btn{
+    display:flex; align-items:center; gap:12px;
+    background:transparent; border:none; color:var(--fg);
+    text-align:left; padding:12px 10px; border-radius:10px;
+    font-size:.82rem; letter-spacing:.06em; text-transform:uppercase;
+    font-weight:600; font-family:var(--body);
+    transition:background .12s ease;
+  }
+  .nav-btn:hover, .nav-btn:focus-visible{ background:rgba(99,56,0,.08); }
+  .nav-btn .ic{ font-size:1.15rem; flex:0 0 auto; width:1.3em; text-align:center; }
+  .nav-btn .lbl{ display:none; white-space:nowrap; }
+  @media(min-width:760px){ .nav-btn .lbl{ display:inline; } }
+
+  .sidebar-search{ margin-top:10px; position:relative; }
+  .sidebar-search input{
+    width:100%; border:1px solid var(--hair); background:transparent;
+    color:var(--fg); border-radius:10px; padding:10px 10px;
+    font-family:var(--body); font-size:.85rem;
+  }
+  .sidebar-search input::placeholder{ color:var(--fg-faint); }
+  .sidebar-search .ic{ display:none; }
+
+  .sidebar-spacer{ flex:1; }
+
+  .font-controls{
+    display:flex; gap:6px; justify-content:center;
+    border-top:none; padding-top:10px;
+  }
+  .font-controls button{
+    width:32px; height:32px; border-radius:8px; border:1px solid var(--hair);
+    background:transparent; color:var(--fg); font-family:var(--mono); font-weight:600;
+  }
+  .font-controls button:hover{ background:rgba(99,56,0,.08); }
+
+  .demo-note{
+    font-family:var(--mono); font-size:.58rem; color:var(--fg-faint);
+    line-height:1.4; padding:8px 4px 0; display:none;
+  }
+  @media(min-width:760px){ .demo-note{ display:block; } }
+
+  /* ================= READER ================= */
+  #reader{ flex:1 1 auto; display:flex; flex-direction:column; min-width:0; height:100%; }
+
+  #bookHeader{
+    display:flex; align-items:baseline; justify-content:space-between;
+    gap:16px; padding:26px clamp(18px,4vw,56px) 6px;
+  }
+  .titles{ display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
+  .book-title{
+    font-family:var(--display); font-weight:600; margin:0;
+    font-size:clamp(1.7rem, 3.4vw, 2.7rem);
+    letter-spacing:.01em; text-align:left;
+  }
+  .chap-num{
+    font-family:var(--display); font-style:italic; font-weight:500;
+    color:var(--fg-soft); font-size:clamp(1.1rem,2vw,1.5rem);
+  }
+  .chap-nav{ display:flex; gap:6px; align-items:center; }
+  .chap-nav button{
+    background:none; border:1px solid var(--hair); color:var(--fg);
+    width:34px; height:34px; border-radius:50%; font-size:1rem;
+  }
+  .chap-nav button:hover{ background:rgba(99,56,0,.08); }
+
+  #pageHint{
+    padding:0 clamp(18px,4vw,56px); font-family:var(--mono); font-size:.64rem;
+    color:var(--fg-faint); letter-spacing:.04em; text-transform:uppercase;
+  }
+
+  .columns-wrap{
+    flex:1 1 auto; overflow:hidden; padding:14px clamp(10px,3vw,40px) 30px;
+    min-height:0;
+  }
+  #columns{
+    height:100%;
+    overflow-x:auto; overflow-y:hidden;
+    scroll-behavior:auto; /* no smooth-scroll animation */
+    -webkit-overflow-scrolling:auto;
+    column-gap:clamp(28px,4vw,56px);
+    column-fill:auto;
+    column-count:2; /* minimum of two columns at every size */
+    column-rule:none; /* never a vertical separator line */
+    padding-right:2px;
+  }
+  @media(min-width:640px){ #columns{ column-count:2; } }
+  @media(min-width:900px){ #columns{ column-count:3; } }
+  @media(min-width:1300px){ #columns{ column-count:4; } }
+  @media(min-width:1750px){ #columns{ column-count:5; } }
+
+  .pericope{
+    font-family:var(--display); font-weight:700; font-style:italic;
+    font-size:1.22em; color:var(--fg); margin:1.1em 0 .5em;
+    break-inside:avoid; break-after:avoid-column;
+  }
+  .pericope:first-child{ margin-top:0; }
+
+  .verse{
+    display:block; margin:0 0 .62em; break-inside:avoid-column;
+    font-weight:700; /* verses are bolded per spec */
+    line-height:1.5;
+  }
+  .verse .vnum{
+    font-weight:800; font-size:.78em; color:var(--accent);
+    margin-right:.42em; font-variant-numeric:tabular-nums;
+  }
+  .verse .vtext{ font-weight:700; }
+  .verse .vref{
+    font-family:var(--mono); font-weight:600; font-style:normal;
+    font-size:.64em; color:var(--fg-soft); margin-left:.4em;
+    white-space:nowrap;
+  }
+  .verse mark{ background:#f4dfb8; color:var(--fg); border-radius:2px; padding:0 2px; }
+
+  .missing-chapter{
+    font-family:var(--mono); font-size:.85rem; color:var(--fg-soft);
+    border:1px dashed var(--hair); border-radius:10px; padding:18px; max-width:46ch;
+  }
+
+  /* ================= MODALS ================= */
+  .modal-veil{
+    position:fixed; inset:0; background:rgba(255,255,255,.94);
+    display:flex; align-items:flex-start; justify-content:center;
+    padding:6vh 18px; overflow-y:auto; z-index:50;
+  }
+  .modal-veil.hidden{ display:none; }
+  .modal-card{ width:100%; max-width:760px; }
+  .modal-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; }
+  .modal-top h2{ font-family:var(--display); font-weight:600; font-size:1.9rem; margin:0; }
+  .modal-close{
+    background:none; border:1px solid var(--hair); color:var(--fg);
+    width:36px; height:36px; border-radius:50%; font-size:1rem;
+  }
+  .modal-close:hover{ background:rgba(99,56,0,.08); }
+
+  .testament-label{
+    font-family:var(--mono); font-size:.68rem; text-transform:uppercase;
+    letter-spacing:.1em; color:var(--fg-soft); margin:22px 0 10px;
+  }
+  .book-grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+    gap:8px;
+  }
+  .book-grid button{
+    text-align:left; background:transparent; border:1px solid var(--hair);
+    color:var(--fg); border-radius:10px; padding:10px 12px; font-family:var(--body);
+    font-size:.92rem;
+  }
+  .book-grid button:hover{ background:rgba(99,56,0,.08); }
+  .book-grid button.has-text{ font-weight:700; }
+  .book-grid button .dot{ color:var(--accent); margin-left:4px; }
+
+  .chapter-grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(46px,1fr)); gap:8px;
+  }
+  .chapter-grid button{
+    background:transparent; border:1px solid var(--hair); color:var(--fg);
+    border-radius:8px; padding:8px 0; font-family:var(--mono); font-weight:600;
+  }
+  .chapter-grid button:hover{ background:rgba(99,56,0,.08); }
+
+  .home-hero{ text-align:left; padding-top:4vh; }
+  .home-hero .fleuron{ font-size:2rem; color:var(--accent); }
+  .home-hero h1{ font-family:var(--display); font-weight:600; font-size:clamp(2.2rem,6vw,3.6rem); margin:.2em 0 0; }
+  .home-hero p{ color:var(--fg-soft); max-width:56ch; line-height:1.6; }
+  .home-actions{ display:flex; gap:12px; flex-wrap:wrap; margin-top:22px; }
+  .home-actions button{
+    border:1px solid var(--fg); background:var(--fg); color:#fff;
+    padding:12px 20px; border-radius:999px; font-weight:600; font-size:.9rem;
+  }
+  .home-actions button.ghost{ background:transparent; color:var(--fg); }
+  .home-actions button:hover{ opacity:.85; }
+  .home-note{
+    margin-top:34px; font-family:var(--mono); font-size:.72rem; line-height:1.7;
+    color:var(--fg-soft); border-top:1px solid var(--hair); padding-top:16px; max-width:60ch;
+  }
+
+  .search-input-lg{
+    width:100%; border:1px solid var(--hair); border-radius:12px;
+    padding:14px 16px; font-family:var(--body); font-size:1rem; color:var(--fg);
+    background:transparent; margin-bottom:18px;
+  }
+  .search-results{ display:flex; flex-direction:column; gap:2px; }
+  .search-result{
+    display:block; width:100%; text-align:left; background:transparent;
+    border:none; border-top:1px solid var(--hair); padding:14px 4px; color:var(--fg);
+  }
+  .search-result:first-child{ border-top:none; }
+  .search-result:hover{ background:rgba(99,56,0,.06); }
+  .search-result .ref{
+    font-family:var(--mono); font-weight:700; font-size:.72rem;
+    color:var(--accent); text-transform:uppercase; letter-spacing:.04em; display:block; margin-bottom:4px;
+  }
+  .search-result .snippet{ font-size:.92rem; line-height:1.5; }
+  .search-result .snippet mark{ background:#f4dfb8; color:var(--fg); border-radius:2px; padding:0 2px; }
+  .search-empty{ color:var(--fg-faint); font-family:var(--mono); font-size:.85rem; padding:20px 4px; }
+
+  .goodbye{
+    position:fixed; inset:0; background:var(--bg); color:var(--fg);
+    display:flex; flex-direction:column; align-items:flex-start; justify-content:center;
+    padding:0 8vw; z-index:60;
+  }
+  .goodbye.hidden{ display:none; }
+  .goodbye .fleuron{ font-size:2rem; color:var(--accent); }
+  .goodbye h1{ font-family:var(--display); font-size:clamp(2rem,5vw,3rem); margin:.2em 0; }
+  .goodbye p{ color:var(--fg-soft); max-width:50ch; line-height:1.6; }
+  .goodbye button{
+    margin-top:20px; border:1px solid var(--fg); background:transparent; color:var(--fg);
+    padding:10px 20px; border-radius:999px; font-weight:600;
+  }
+
+  @media(max-width:480px){
+    #bookHeader{ flex-wrap:wrap; }
+    .titles{ gap:8px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside id="sidebar" aria-label="Navegação">
+    <div class="brand"><span class="fleuron">❧</span><span>Bíblia NAA</span></div>
+
+    <button class="nav-btn" id="btnSair" title="Sair"><span class="ic">⏻</span><span class="lbl">Sair</span></button>
+    <button class="nav-btn" id="btnInicio" title="Início"><span class="ic">⌂</span><span class="lbl">Início</span></button>
+    <button class="nav-btn" id="btnLivros" title="Livros"><span class="ic">☰</span><span class="lbl">Livros</span></button>
+
+    <div class="sidebar-search">
+      <input id="searchInput" type="search" placeholder="Pesquisar palavra…" aria-label="Pesquisar palavra na Bíblia">
+    </div>
+
+    <div class="sidebar-spacer"></div>
+
+    <div class="font-controls" aria-label="Tamanho da fonte">
+      <button id="fontMinus" aria-label="Diminuir fonte">A−</button>
+      <button id="fontPlus" aria-label="Aumentar fonte">A+</button>
+    </div>
+    <div class="demo-note">Texto de demonstração. Substitua pelos dados licenciados da NAA (Sociedade Bíblica do Brasil) — ver comentário no código-fonte.</div>
+  </aside>
+
+  <!-- ================= READER ================= -->
+  <main id="reader">
+    <div id="bookHeader">
+      <div class="titles">
+        <h1 class="book-title" id="bookTitle">Gênesis</h1>
+        <span class="chap-num" id="chapNum">1</span>
+      </div>
+      <div class="chap-nav">
+        <button id="prevChap" title="Capítulo anterior" aria-label="Capítulo anterior">‹</button>
+        <button id="nextChap" title="Próximo capítulo" aria-label="Próximo capítulo">›</button>
+      </div>
+    </div>
+    <div id="pageHint">Role para o lado ou use as setas do teclado para avançar as colunas</div>
+    <div class="columns-wrap">
+      <div id="columns" tabindex="0"></div>
+    </div>
+  </main>
+
+  <!-- ================= MODAL: LIVROS ================= -->
+  <div class="modal-veil hidden" id="modalLivros">
+    <div class="modal-card">
+      <div class="modal-top"><h2>Livros</h2><button class="modal-close" data-close="modalLivros">✕</button></div>
+      <div id="bookGridWrap"></div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: CAPÍTULOS ================= -->
+  <div class="modal-veil hidden" id="modalCapitulos">
+    <div class="modal-card">
+      <div class="modal-top"><h2 id="capModalTitle">Capítulos</h2><button class="modal-close" data-close="modalCapitulos">✕</button></div>
+      <div class="chapter-grid" id="chapterGridWrap"></div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: HOME ================= -->
+  <div class="modal-veil hidden" id="modalHome">
+    <div class="modal-card">
+      <div class="modal-top"><span></span><button class="modal-close" data-close="modalHome">✕</button></div>
+      <div class="home-hero">
+        <span class="fleuron">❧</span>
+        <h1>Bíblia Sagrada<br>Nova Almeida Atualizada</h1>
+        <p>Um espaço simples e silencioso para leitura, com colunas, pericopes e referências destacadas.</p>
+        <div class="home-actions">
+          <button id="btnContinuar">Continuar leitura</button>
+          <button class="ghost" id="btnGenesis">Começar em Gênesis 1</button>
+        </div>
+        <div class="home-note">
+          Este aplicativo é um leitor (motor de exibição) independente de banco de dados — todos os dados ficam no próprio arquivo e as preferências são salvas em cookies no seu navegador. O texto bíblico exibido nesta demonstração é um texto de exemplo (placeholder), não o texto oficial da NAA, que é protegido por direitos autorais da Sociedade Bíblica do Brasil. Substitua o objeto de dados no código-fonte pelo texto licenciado que você tiver o direito de usar.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: PESQUISA ================= -->
+  <div class="modal-veil hidden" id="modalPesquisa">
+    <div class="modal-card">
+      <div class="modal-top"><h2>Pesquisar</h2><button class="modal-close" data-close="modalPesquisa">✕</button></div>
+      <input class="search-input-lg" id="searchInputLg" type="search" placeholder="Digite uma palavra ou expressão…">
+      <div class="search-results" id="searchResultsWrap"></div>
+    </div>
+  </div>
+
+  <!-- ================= GOODBYE / SAIR ================= -->
+  <div class="goodbye hidden" id="goodbyeScreen">
+    <span class="fleuron">❧</span>
+    <h1>Até breve.</h1>
+    <p>Sua última posição de leitura foi salva neste navegador. Você já pode fechar esta aba com segurança.</p>
+    <button id="btnVoltarLeitura">Voltar à leitura</button>
+  </div>
+
+</div>
+
+<script>
+/* ==========================================================================
+   BIBLE-DATA.JS
+   ==========================================================================
+   ATENÇÃO — LEIA ANTES DE USAR EM PRODUÇÃO
+   --------------------------------------------------------------------------
+   A "Nova Almeida Atualizada" (NAA) é uma tradução com direitos autorais
+   reservados à Sociedade Bíblica do Brasil (SBB). Este arquivo NÃO contém
+   o texto oficial da NAA — os versículos abaixo são um texto de EXEMPLO
+   (placeholder), escrito apenas para demonstrar o funcionamento do leitor
+   (colunas, pericopes, negrito, referências, pesquisa, etc.).
+
+   Para usar o aplicativo com o texto real, substitua o conteúdo de
+   BIBLE_TEXT pelo texto que você tiver o direito/licença de usar,
+   mantendo exatamente este formato (JSON/JS):
+
+   BIBLE_TEXT = {
+     "Nome do Livro": {
+       "1": [                                // capítulo 1
+         { "type": "pericope", "text": "Título da seção" },
+         { "type": "verse", "n": 1, "text": "Texto do versículo…", "refs": ["Jo 1.1"] },
+         { "type": "verse", "n": 2, "text": "Texto do versículo…" }  // "refs" é opcional
+       ],
+       "2": [ ... ]
+     },
+     "Outro Livro": { "1": [ ... ] }
+   }
+
+   BOOKS (abaixo) já contém a lista completa dos 66 livros com o número
+   real de capítulos de cada um (isso não é texto protegido, é apenas a
+   estrutura/sumário da Bíblia), para que o menu "Livros" funcione por
+   inteiro mesmo antes de você inserir todo o texto. Livros/capítulos que
+   não tiverem texto cadastrado em BIBLE_TEXT aparecerão no leitor com um
+   aviso "texto não cadastrado".
+   ========================================================================== */
+
+const BOOKS = [
+  // Antigo Testamento
+  {name:"Gênesis",t:"AT",c:50},{name:"Êxodo",t:"AT",c:40},{name:"Levítico",t:"AT",c:27},
+  {name:"Números",t:"AT",c:36},{name:"Deuteronômio",t:"AT",c:34},{name:"Josué",t:"AT",c:24},
+  {name:"Juízes",t:"AT",c:21},{name:"Rute",t:"AT",c:4},{name:"1 Samuel",t:"AT",c:31},
+  {name:"2 Samuel",t:"AT",c:24},{name:"1 Reis",t:"AT",c:22},{name:"2 Reis",t:"AT",c:25},
+  {name:"1 Crônicas",t:"AT",c:29},{name:"2 Crônicas",t:"AT",c:36},{name:"Esdras",t:"AT",c:10},
+  {name:"Neemias",t:"AT",c:13},{name:"Ester",t:"AT",c:10},{name:"Jó",t:"AT",c:42},
+  {name:"Salmos",t:"AT",c:150},{name:"Provérbios",t:"AT",c:31},{name:"Eclesiastes",t:"AT",c:12},
+  {name:"Cântico dos Cânticos",t:"AT",c:8},{name:"Isaías",t:"AT",c:66},{name:"Jeremias",t:"AT",c:52},
+  {name:"Lamentações",t:"AT",c:5},{name:"Ezequiel",t:"AT",c:48},{name:"Daniel",t:"AT",c:12},
+  {name:"Oseias",t:"AT",c:14},{name:"Joel",t:"AT",c:3},{name:"Amós",t:"AT",c:9},
+  {name:"Obadias",t:"AT",c:1},{name:"Jonas",t:"AT",c:4},{name:"Miqueias",t:"AT",c:7},
+  {name:"Naum",t:"AT",c:3},{name:"Habacuque",t:"AT",c:3},{name:"Sofonias",t:"AT",c:3},
+  {name:"Ageu",t:"AT",c:2},{name:"Zacarias",t:"AT",c:14},{name:"Malaquias",t:"AT",c:4},
+  // Novo Testamento
+  {name:"Mateus",t:"NT",c:28},{name:"Marcos",t:"NT",c:16},{name:"Lucas",t:"NT",c:24},
+  {name:"João",t:"NT",c:21},{name:"Atos",t:"NT",c:28},{name:"Romanos",t:"NT",c:16},
+  {name:"1 Coríntios",t:"NT",c:16},{name:"2 Coríntios",t:"NT",c:13},{name:"Gálatas",t:"NT",c:6},
+  {name:"Efésios",t:"NT",c:6},{name:"Filipenses",t:"NT",c:4},{name:"Colossenses",t:"NT",c:4},
+  {name:"1 Tessalonicenses",t:"NT",c:5},{name:"2 Tessalonicenses",t:"NT",c:3},{name:"1 Timóteo",t:"NT",c:6},
+  {name:"2 Timóteo",t:"NT",c:4},{name:"Tito",t:"NT",c:3},{name:"Filemom",t:"NT",c:1},
+  {name:"Hebreus",t:"NT",c:13},{name:"Tiago",t:"NT",c:5},{name:"1 Pedro",t:"NT",c:5},
+  {name:"2 Pedro",t:"NT",c:3},{name:"1 João",t:"NT",c:5},{name:"2 João",t:"NT",c:1},
+  {name:"3 João",t:"NT",c:1},{name:"Judas",t:"NT",c:1},{name:"Apocalipse",t:"NT",c:22}
+];
+
+const BIBLE_TEXT = {
+  "Gênesis": {
+    "1": [
+      {type:"pericope", text:"A criação do mundo (texto de demonstração)"},
+      {type:"verse", n:1, text:"[Exemplo] No princípio, Deus criou os céus e a terra — texto ilustrativo para teste do layout.", refs:["cf. Jo 1.1-3"]},
+      {type:"verse", n:2, text:"[Exemplo] A terra estava sem forma e vazia; havia trevas sobre a face do abismo, e o Espírito de Deus se movia sobre a face das águas."},
+      {type:"verse", n:3, text:"[Exemplo] Disse Deus: haja luz; e houve luz — frase usada aqui apenas para demonstrar a quebra de linha por versículo."},
+      {type:"verse", n:4, text:"[Exemplo] Deus viu que a luz era boa; e fez separação entre a luz e as trevas."},
+      {type:"verse", n:5, text:"[Exemplo] Deus chamou à luz dia, e às trevas chamou noite. Houve tarde e manhã, o primeiro dia.", refs:["cf. Sl 74.16"]},
+      {type:"pericope", text:"A expansão e as águas (exemplo)"},
+      {type:"verse", n:6, text:"[Exemplo] Disse também Deus: haja uma expansão no meio das águas, e haja separação entre águas e águas."},
+      {type:"verse", n:7, text:"[Exemplo] Fez Deus a expansão e fez separação entre as águas debaixo da expansão e as águas por cima da expansão. E assim foi."},
+      {type:"verse", n:8, text:"[Exemplo] Chamou Deus à expansão céu. Houve tarde e manhã, o segundo dia."},
+      {type:"verse", n:9, text:"[Exemplo] Disse ainda Deus: ajuntem-se num só lugar as águas debaixo do céu, e apareça a porção seca. E assim foi.", refs:["cf. Sl 33.7"]},
+      {type:"verse", n:10, text:"[Exemplo] Deus chamou à porção seca terra e ao ajuntamento das águas chamou mares. E viu Deus que isso era bom."}
+    ]
+  },
+  "João": {
+    "3": [
+      {type:"pericope", text:"O encontro noturno (texto de demonstração)"},
+      {type:"verse", n:1, text:"[Exemplo] Havia entre os fariseus um homem chamado Nicodemos, uma autoridade entre os judeus — texto ilustrativo."},
+      {type:"verse", n:2, text:"[Exemplo] Este foi ter com Jesus, de noite, e disse-lhe: mestre, sabemos que vieste da parte de Deus como mestre."},
+      {type:"verse", n:16, text:"[Exemplo] Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito — frase de teste para destacar a numeração não contínua dos versículos.", refs:["cf. Rm 5.8", "cf. 1 Jo 4.9"]},
+      {type:"verse", n:17, text:"[Exemplo] Porque Deus enviou o seu Filho ao mundo, não para que condenasse o mundo, mas para que o mundo fosse salvo por ele."}
+    ]
+  },
+  "Salmos": {
+    "23": [
+      {type:"pericope", text:"O Senhor é o meu pastor (texto de demonstração)"},
+      {type:"verse", n:1, text:"[Exemplo] O Senhor é o meu pastor; nada me faltará — texto ilustrativo para o menu de pesquisa."},
+      {type:"verse", n:2, text:"[Exemplo] Deitar-me faz em verdes pastos, guia-me mansamente a águas tranquilas."},
+      {type:"verse", n:3, text:"[Exemplo] Refrigera a minha alma; guia-me pelas veredas da justiça, por amor do seu nome."},
+      {type:"verse", n:4, text:"[Exemplo] Ainda que eu andasse pelo vale da sombra da morte, não temeria mal algum, porque tu estás comigo.", refs:["cf. Sl 3.6"]}
+    ]
+  }
+};
+
+</script>
+<script>
+/* ==========================================================================
+   APP.JS — lógica do leitor da Bíblia NAA
+   Sem banco de dados: estado de preferência salvo apenas em cookies.
+   ========================================================================== */
+
+/* ---------- cookies (nada de localStorage/servidor) ---------- */
+function setCookie(name, value, days){
+  const d = new Date();
+  d.setTime(d.getTime() + days*24*60*60*1000);
+  document.cookie = `${name}=${encodeURIComponent(value)};expires=${d.toUTCString()};path=/;SameSite=Lax`;
+}
+function getCookie(name){
+  const m = document.cookie.match(new RegExp('(?:^|; )'+name+'=([^;]*)'));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+/* ---------- estado ---------- */
+const state = {
+  book: getCookie('naa_book') || 'Gênesis',
+  chapter: parseInt(getCookie('naa_chap') || '1', 10),
+  fontSize: parseFloat(getCookie('naa_font') || '1.08')
+};
+
+const els = {
+  columns: document.getElementById('columns'),
+  bookTitle: document.getElementById('bookTitle'),
+  chapNum: document.getElementById('chapNum'),
+  prevChap: document.getElementById('prevChap'),
+  nextChap: document.getElementById('nextChap'),
+  searchInput: document.getElementById('searchInput'),
+  searchInputLg: document.getElementById('searchInputLg'),
+  searchResultsWrap: document.getElementById('searchResultsWrap'),
+  bookGridWrap: document.getElementById('bookGridWrap'),
+  chapterGridWrap: document.getElementById('chapterGridWrap'),
+  capModalTitle: document.getElementById('capModalTitle')
+};
+
+/* ---------- utilitários ---------- */
+function bookMeta(name){ return BOOKS.find(b => b.name === name); }
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function highlight(text, term){
+  if(!term) return escapeHtml(text);
+  const safe = escapeHtml(text);
+  const escTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return safe.replace(new RegExp('('+escTerm+')', 'ig'), '<mark>$1</mark>');
+}
+
+/* ---------- renderização do capítulo ---------- */
+function renderChapter(term){
+  const meta = bookMeta(state.book);
+  els.bookTitle.textContent = state.book;
+  els.chapNum.textContent = state.chapter;
+  els.columns.style.fontSize = state.fontSize + 'rem';
+
+  const chapterData = BIBLE_TEXT[state.book] && BIBLE_TEXT[state.book][state.chapter];
+
+  if(!chapterData){
+    els.columns.innerHTML = `<div class="missing-chapter">
+      Texto não cadastrado para <strong>${escapeHtml(state.book)} ${state.chapter}</strong> nesta demonstração.
+      Adicione o conteúdo em <code>bible-data.js</code> seguindo o formato indicado no topo do arquivo.
+    </div>`;
+    els.columns.scrollLeft = 0;
+    return;
+  }
+
+  let html = '';
+  chapterData.forEach(item => {
+    if(item.type === 'pericope'){
+      html += `<div class="pericope">${highlight(item.text, term)}</div>`;
+    } else if(item.type === 'verse'){
+      const refHtml = (item.refs && item.refs.length)
+        ? `<span class="vref">(${item.refs.map(r => escapeHtml(r)).join('; ')})</span>` : '';
+      html += `<p class="verse" id="v-${item.n}">` +
+              `<span class="vnum">${item.n}</span>` +
+              `<span class="vtext">${highlight(item.text, term)}</span>` +
+              refHtml + `</p>`;
+    }
+  });
+  els.columns.innerHTML = html;
+  els.columns.scrollLeft = 0;
+}
+
+function goTo(book, chapter, term){
+  state.book = book;
+  state.chapter = chapter;
+  setCookie('naa_book', book, 180);
+  setCookie('naa_chap', String(chapter), 180);
+  renderChapter(term);
+}
+
+/* ---------- navegação de capítulos ---------- */
+els.prevChap.addEventListener('click', () => {
+  if(state.chapter > 1) goTo(state.book, state.chapter - 1);
+});
+els.nextChap.addEventListener('click', () => {
+  const meta = bookMeta(state.book);
+  if(meta && state.chapter < meta.c) goTo(state.book, state.chapter + 1);
+});
+
+/* ---------- rolagem horizontal, sem efeitos de easing ---------- */
+els.columns.addEventListener('wheel', (e) => {
+  // converte a rolagem vertical do mouse/trackpad em rolagem lateral instantânea
+  if(Math.abs(e.deltaY) > Math.abs(e.deltaX)){
+    e.preventDefault();
+    els.columns.scrollLeft += e.deltaY;
+  }
+}, { passive:false });
+
+els.columns.addEventListener('keydown', (e) => {
+  const step = els.columns.clientWidth * 0.92;
+  if(e.key === 'ArrowRight'){ els.columns.scrollLeft += step; }
+  if(e.key === 'ArrowLeft'){ els.columns.scrollLeft -= step; }
+});
+
+/* ---------- fonte (cookie) ---------- */
+document.getElementById('fontPlus').addEventListener('click', () => {
+  state.fontSize = Math.min(1.6, state.fontSize + 0.06);
+  setCookie('naa_font', state.fontSize.toFixed(2), 365);
+  renderChapter();
+});
+document.getElementById('fontMinus').addEventListener('click', () => {
+  state.fontSize = Math.max(0.8, state.fontSize - 0.06);
+  setCookie('naa_font', state.fontSize.toFixed(2), 365);
+  renderChapter();
+});
+
+/* ---------- modais ---------- */
+function openModal(id){ document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id){ document.getElementById(id).classList.add('hidden'); }
+document.querySelectorAll('[data-close]').forEach(btn => {
+  btn.addEventListener('click', () => closeModal(btn.dataset.close));
+});
+document.querySelectorAll('.modal-veil').forEach(veil => {
+  veil.addEventListener('click', (e) => { if(e.target === veil) veil.classList.add('hidden'); });
+});
+
+/* ---------- botão Livros ---------- */
+function buildBookGrid(){
+  const groups = { AT: [], NT: [] };
+  BOOKS.forEach(b => groups[b.t].push(b));
+  let html = '';
+  [['AT','Antigo Testamento'], ['NT','Novo Testamento']].forEach(([key, label]) => {
+    html += `<div class="testament-label">${label}</div><div class="book-grid">`;
+    groups[key].forEach(b => {
+      const hasText = !!BIBLE_TEXT[b.name];
+      html += `<button class="${hasText ? 'has-text' : ''}" data-book="${escapeHtml(b.name)}">
+        ${escapeHtml(b.name)}${hasText ? '<span class="dot">●</span>' : ''}</button>`;
+    });
+    html += `</div>`;
+  });
+  els.bookGridWrap.innerHTML = html;
+  els.bookGridWrap.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      closeModal('modalLivros');
+      openChapterPicker(btn.dataset.book);
+    });
+  });
+}
+
+function openChapterPicker(bookName){
+  const meta = bookMeta(bookName);
+  els.capModalTitle.textContent = bookName;
+  let html = '';
+  for(let i = 1; i <= meta.c; i++){
+    const hasText = !!(BIBLE_TEXT[bookName] && BIBLE_TEXT[bookName][i]);
+    html += `<button style="${hasText ? 'font-weight:800;' : 'opacity:.45;'}" data-c="${i}">${i}</button>`;
+  }
+  els.chapterGridWrap.innerHTML = html;
+  els.chapterGridWrap.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      closeModal('modalCapitulos');
+      goTo(bookName, parseInt(btn.dataset.c, 10));
+    });
+  });
+  openModal('modalCapitulos');
+}
+
+document.getElementById('btnLivros').addEventListener('click', () => {
+  buildBookGrid();
+  openModal('modalLivros');
+});
+
+/* ---------- botão Início ---------- */
+document.getElementById('btnInicio').addEventListener('click', () => openModal('modalHome'));
+document.getElementById('btnContinuar').addEventListener('click', () => {
+  closeModal('modalHome');
+  renderChapter();
+});
+document.getElementById('btnGenesis').addEventListener('click', () => {
+  closeModal('modalHome');
+  goTo('Gênesis', 1);
+});
+
+/* ---------- botão Sair ---------- */
+document.getElementById('btnSair').addEventListener('click', () => {
+  const ok = confirm('Deseja realmente sair? Sua posição de leitura já está salva neste navegador.');
+  if(!ok) return;
+  document.getElementById('goodbyeScreen').classList.remove('hidden');
+  window.close(); // só funciona se a aba tiver sido aberta via script; caso contrário, permanece a tela de despedida
+});
+document.getElementById('btnVoltarLeitura').addEventListener('click', () => {
+  document.getElementById('goodbyeScreen').classList.add('hidden');
+});
+
+/* ---------- pesquisa ---------- */
+function runSearch(term){
+  term = term.trim();
+  if(!term){
+    els.searchResultsWrap.innerHTML = '<div class="search-empty">Digite uma palavra para pesquisar.</div>';
+    return;
+  }
+  const lower = term.toLowerCase();
+  const results = [];
+  Object.keys(BIBLE_TEXT).forEach(book => {
+    Object.keys(BIBLE_TEXT[book]).forEach(chap => {
+      BIBLE_TEXT[book][chap].forEach(item => {
+        if(item.type === 'verse' && item.text.toLowerCase().includes(lower)){
+          results.push({ book, chap, n: item.n, text: item.text });
+        }
+      });
+    });
+  });
+
+  if(results.length === 0){
+    els.searchResultsWrap.innerHTML = `<div class="search-empty">Nenhum resultado para "${escapeHtml(term)}" no texto atualmente cadastrado.</div>`;
+    return;
+  }
+
+  els.searchResultsWrap.innerHTML = results.map(r => `
+    <button class="search-result" data-book="${escapeHtml(r.book)}" data-chap="${r.chap}" data-n="${r.n}">
+      <span class="ref">${escapeHtml(r.book)} ${r.chap}:${r.n}</span>
+      <span class="snippet">${highlight(r.text, term)}</span>
+    </button>
+  `).join('');
+
+  els.searchResultsWrap.querySelectorAll('.search-result').forEach(btn => {
+    btn.addEventListener('click', () => {
+      closeModal('modalPesquisa');
+      goTo(btn.dataset.book, parseInt(btn.dataset.chap, 10), term);
+      setTimeout(() => {
+        const v = document.getElementById('v-' + btn.dataset.n);
+        if(v) v.scrollIntoView({ inline:'start', block:'nearest' });
+      }, 30);
+    });
+  });
+}
+
+els.searchInput.addEventListener('focus', () => {
+  openModal('modalPesquisa');
+  els.searchInputLg.value = els.searchInput.value;
+  els.searchInputLg.focus();
+  runSearch(els.searchInputLg.value);
+});
+els.searchInputLg.addEventListener('input', () => runSearch(els.searchInputLg.value));
+
+/* ---------- primeira renderização ---------- */
+renderChapter();
+if(!getCookie('naa_visited')){
+  setCookie('naa_visited', '1', 365);
+  openModal('modalHome');
+}
+
+</script>
+</body>
+</html>
